@@ -1,0 +1,242 @@
+# EventFlow - Event & Vendor Management Platform
+
+A full-stack event and vendor management system built with Flask and React, designed to streamline event applications, vendor management, and payment tracking.
+
+![EventFlow](https://img.shields.io/badge/Stack-Full--Stack-blue)
+![Flask](https://img.shields.io/badge/Backend-Flask-green)
+![React](https://img.shields.io/badge/Frontend-React-cyan)
+![MySQL](https://img.shields.io/badge/Database-MySQL%2FSQLite-orange)
+
+## 🎯 Project Overview
+
+EventFlow is a comprehensive platform that connects event organizers with vendors. It provides:
+- **Vendor Portal**: Browse events, submit applications, track payment status
+- **Admin Dashboard**: Manage vendors, review applications, oversee events, analytics
+- **Real-time Updates**: Track application status and payment processing
+- **Analytics**: Dashboard with insights and statistics
+
+## ✨ Features
+
+### For Vendors
+- 📋 Browse and apply to upcoming events
+- 📊 Dashboard with application statistics
+- 💳 Track payment status and history
+- ✅ Real-time application status updates
+- 📝 Manage multiple applications
+
+### For Administrators
+- 👥 Vendor management and verification
+- ✔️ Application review and approval workflow
+- 📅 Event creation and management
+- 💰 Payment tracking and reporting
+- 📈 Comprehensive analytics dashboard
+- 📊 Revenue and application insights
+
+## 🛠️ Technology Stack
+
+### Backend
+- **Framework**: Flask 3.0
+- **Database**: SQLAlchemy (SQLite for dev, MySQL/PostgreSQL for production)
+- **Authentication**: Flask-JWT-Extended
+- **API**: RESTful architecture
+
+### Frontend
+- **Library**: React 18
+- **Routing**: React Router 6
+- **HTTP Client**: Axios
+- **Charts**: Recharts
+- **Icons**: Lucide React
+- **Styling**: Custom CSS with modern design system
+
+### Database Schema
+- **Users**: Vendors and administrators with role-based access
+- **Events**: Event details with dates, venues, fees
+- **Applications**: Vendor applications linked to events
+- **Payments**: Payment tracking with status management
+
+## 📁 Project Structure
+
+```
+eventflow/
+├── backend/
+│   ├── app.py                 # Main Flask application
+│   ├── config.py              # Configuration settings
+│   ├── models.py              # Database models
+│   ├── auth_routes.py         # Authentication endpoints
+│   ├── vendor_routes.py       # Vendor-specific endpoints
+│   ├── admin_routes.py        # Admin-specific endpoints
+│   └── requirements.txt       # Python dependencies
+│
+└── frontend/
+    ├── public/
+    │   └── index.html         # HTML template
+    ├── src/
+    │   ├── App.js             # Main React component with routing
+    │   ├── App.css            # Comprehensive styling
+    │   └── index.js           # Entry point
+    └── package.json           # Node dependencies
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- MySQL (optional, uses SQLite by default)
+
+### Backend Setup
+
+1. **Navigate to backend directory:**
+```bash
+cd eventflow/backend
+```
+
+2. **Create virtual environment:**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Configure database (optional):**
+Edit `config.py` to use MySQL/PostgreSQL or keep SQLite default.
+
+5. **Initialize database and run:**
+```bash
+python app.py
+```
+
+The API will be available at `http://localhost:5000/api`
+
+### Frontend Setup
+
+1. **Navigate to frontend directory:**
+```bash
+cd eventflow/frontend
+```
+
+2. **Install dependencies:**
+```bash
+npm install
+```
+
+3. **Start development server:**
+```bash
+npm start
+```
+
+The app will open at `http://localhost:3000`
+
+## 🔐 Demo Credentials
+
+### Admin Account
+- **Email**: admin@eventflow.com
+- **Password**: admin123
+
+### Vendor Accounts
+- **Vendor 1**: vendor1@example.com / vendor123
+- **Vendor 2**: vendor2@example.com / vendor123
+- **Vendor 3**: vendor3@example.com / vendor123
+
+## 📡 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user
+- `PUT /api/auth/update-profile` - Update profile
+
+### Vendor Endpoints
+- `GET /api/vendor/events` - Get available events
+- `GET /api/vendor/applications` - Get vendor's applications
+- `POST /api/vendor/applications` - Submit new application
+- `PUT /api/vendor/applications/:id` - Update application
+- `DELETE /api/vendor/applications/:id` - Withdraw application
+- `GET /api/vendor/dashboard/stats` - Get dashboard statistics
+- `GET /api/vendor/payments` - Get payment history
+
+### Admin Endpoints
+- `GET /api/admin/vendors` - Get all vendors
+- `GET /api/admin/vendors/:id` - Get vendor details
+- `PUT /api/admin/vendors/:id/toggle-status` - Activate/deactivate vendor
+- `GET /api/admin/applications` - Get all applications
+- `PUT /api/admin/applications/:id/review` - Review application
+- `GET /api/admin/events` - Get all events
+- `POST /api/admin/events` - Create new event
+- `PUT /api/admin/events/:id` - Update event
+- `DELETE /api/admin/events/:id` - Delete event
+- `GET /api/admin/payments` - Get all payments
+- `PUT /api/admin/payments/:id/update-status` - Update payment status
+- `GET /api/admin/dashboard/stats` - Get comprehensive statistics
+- `GET /api/admin/analytics/*` - Various analytics endpoints
+
+## 🎨 Design Features
+
+- **Modern UI**: Clean, professional design with custom color palette
+- **Responsive**: Works on desktop, tablet, and mobile
+- **Animations**: Smooth transitions and hover effects
+- **Typography**: Google Fonts (Outfit & Inter) for modern look
+- **Status Indicators**: Color-coded badges for quick status identification
+- **Dashboard Cards**: Interactive stat cards with icons
+
+## 🔒 Security Features
+
+- JWT-based authentication
+- Password hashing with Werkzeug
+- Role-based access control (RBAC)
+- Protected API routes
+- Input validation
+- CORS configuration
+
+## 📊 Sample Data
+
+The application comes pre-loaded with:
+- 1 admin account
+- 3 vendor accounts
+- 4 sample events (past and upcoming)
+- Multiple applications with various statuses
+- Payment records
+
+## 🚧 Future Enhancements
+
+- [ ] Email notifications for application status
+- [ ] Document upload functionality
+- [ ] Advanced search and filtering
+- [ ] Payment gateway integration
+- [ ] Vendor ratings and reviews
+- [ ] Calendar integration
+- [ ] Export reports to PDF/Excel
+- [ ] Real-time notifications with WebSocket
+- [ ] Multi-language support
+- [ ] Advanced analytics with more charts
+
+## 🤝 Contributing
+
+This is a portfolio project. Feel free to fork and customize for your needs!
+
+## 📝 License
+
+This project is open source and available for educational purposes.
+
+## 👨‍💻 Author
+
+Built as a full-stack portfolio project demonstrating:
+- RESTful API design
+- Database modeling
+- Authentication & authorization
+- Modern React development
+- Responsive UI/UX design
+- State management
+- CRUD operations
+
+## 📞 Support
+
+For questions or issues, please create an issue in the repository.
+
+---
+
+**EventFlow** - Simplifying event and vendor management, one application at a time.

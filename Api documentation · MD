@@ -1,0 +1,601 @@
+# EventFlow API Documentation
+
+## Base URL
+```
+http://localhost:5000/api
+```
+
+## Authentication
+
+All protected endpoints require a JWT token in the Authorization header:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## Authentication Endpoints
+
+### Register User
+**POST** `/auth/register`
+
+Create a new user account (vendor or admin).
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "full_name": "John Doe",
+  "role": "vendor",
+  "phone": "+1234567890",
+  "company_name": "My Company",
+  "business_type": "Food & Beverage"
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "full_name": "John Doe",
+    "role": "vendor"
+  },
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+}
+```
+
+### Login
+**POST** `/auth/login`
+
+Authenticate user and receive JWT token.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "role": "vendor"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Login successful",
+  "user": { ... },
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+}
+```
+
+### Get Current User
+**GET** `/auth/me`
+
+Get currently authenticated user details.
+
+**Headers:** Authorization required
+
+**Response:** `200 OK`
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "full_name": "John Doe",
+  "role": "vendor",
+  "company_name": "My Company"
+}
+```
+
+---
+
+## Vendor Endpoints
+
+### Get Available Events
+**GET** `/vendor/events`
+
+Get list of all available events vendors can apply to.
+
+**Headers:** Authorization required (Vendor role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "name": "Spring Food Festival 2026",
+    "description": "Annual spring food festival",
+    "event_date": "2026-04-15T10:00:00",
+    "location": "Central Park, New York",
+    "vendor_fee": 500.0,
+    "status": "upcoming",
+    "has_applied": false
+  }
+]
+```
+
+### Get Vendor Applications
+**GET** `/vendor/applications`
+
+Get all applications submitted by the current vendor.
+
+**Headers:** Authorization required (Vendor role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "vendor_id": 1,
+    "event_id": 1,
+    "event_name": "Spring Food Festival 2026",
+    "product_service": "Gourmet burgers",
+    "booth_requirements": "10x10 booth with electricity",
+    "status": "pending",
+    "applied_at": "2026-02-01T10:00:00",
+    "vendor_fee": 500.0
+  }
+]
+```
+
+### Submit Application
+**POST** `/vendor/applications`
+
+Submit a new application to an event.
+
+**Headers:** Authorization required (Vendor role)
+
+**Request Body:**
+```json
+{
+  "event_id": 1,
+  "product_service": "Gourmet burgers and craft beverages",
+  "booth_requirements": "10x10 booth with electricity and water",
+  "additional_notes": "We specialize in organic ingredients"
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "message": "Application submitted successfully",
+  "application": { ... }
+}
+```
+
+### Update Application
+**PUT** `/vendor/applications/:id`
+
+Update a pending application.
+
+**Headers:** Authorization required (Vendor role)
+
+**Request Body:**
+```json
+{
+  "product_service": "Updated product description",
+  "booth_requirements": "Updated requirements"
+}
+```
+
+**Response:** `200 OK`
+
+### Withdraw Application
+**DELETE** `/vendor/applications/:id`
+
+Withdraw a pending application.
+
+**Headers:** Authorization required (Vendor role)
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Application withdrawn successfully"
+}
+```
+
+### Get Dashboard Statistics
+**GET** `/vendor/dashboard/stats`
+
+Get dashboard statistics for vendor.
+
+**Headers:** Authorization required (Vendor role)
+
+**Response:** `200 OK`
+```json
+{
+  "total_applications": 5,
+  "pending": 2,
+  "approved": 2,
+  "rejected": 1,
+  "total_paid": 1000.0,
+  "pending_payments": 500.0,
+  "upcoming_events": 2
+}
+```
+
+### Get Payments
+**GET** `/vendor/payments`
+
+Get all payments for the current vendor.
+
+**Headers:** Authorization required (Vendor role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "application_id": 1,
+    "amount": 500.0,
+    "payment_method": "credit_card",
+    "status": "completed",
+    "payment_date": "2026-02-01T14:30:00"
+  }
+]
+```
+
+---
+
+## Admin Endpoints
+
+### Get All Vendors
+**GET** `/admin/vendors`
+
+Get list of all vendors.
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "email": "vendor1@example.com",
+    "full_name": "John Smith",
+    "company_name": "Gourmet Foods Co.",
+    "business_type": "Food & Beverage",
+    "is_active": true,
+    "created_at": "2026-01-01T00:00:00"
+  }
+]
+```
+
+### Get Vendor Details
+**GET** `/admin/vendors/:id`
+
+Get detailed information about a specific vendor.
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+{
+  "vendor": { ... },
+  "applications": [ ... ],
+  "payments": [ ... ]
+}
+```
+
+### Toggle Vendor Status
+**PUT** `/admin/vendors/:id/toggle-status`
+
+Activate or deactivate a vendor account.
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Vendor activated successfully",
+  "vendor": { ... }
+}
+```
+
+### Get All Applications
+**GET** `/admin/applications`
+
+Get all vendor applications with optional filtering.
+
+**Query Parameters:**
+- `status` (optional): Filter by status (pending, approved, rejected)
+- `event_id` (optional): Filter by event ID
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "vendor_id": 1,
+    "vendor_name": "John Smith",
+    "vendor_company": "Gourmet Foods Co.",
+    "event_id": 1,
+    "event_name": "Spring Food Festival 2026",
+    "product_service": "Gourmet burgers",
+    "status": "pending",
+    "applied_at": "2026-02-01T10:00:00"
+  }
+]
+```
+
+### Review Application
+**PUT** `/admin/applications/:id/review`
+
+Approve or reject an application.
+
+**Headers:** Authorization required (Admin role)
+
+**Request Body:**
+```json
+{
+  "status": "approved",
+  "admin_notes": "Excellent vendor with great reviews"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Application approved successfully",
+  "application": { ... }
+}
+```
+
+### Get All Events
+**GET** `/admin/events`
+
+Get all events with application counts.
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "name": "Spring Food Festival 2026",
+    "event_date": "2026-04-15T10:00:00",
+    "location": "Central Park, New York",
+    "vendor_fee": 500.0,
+    "status": "upcoming",
+    "application_count": 15,
+    "approved_vendors": 10
+  }
+]
+```
+
+### Create Event
+**POST** `/admin/events`
+
+Create a new event.
+
+**Headers:** Authorization required (Admin role)
+
+**Request Body:**
+```json
+{
+  "name": "Summer Music Festival",
+  "description": "Annual summer music event",
+  "event_date": "2026-07-15T18:00:00",
+  "location": "Beach Park, Miami",
+  "venue": "Main Stage",
+  "expected_attendees": 5000,
+  "vendor_fee": 750.0,
+  "status": "upcoming"
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "message": "Event created successfully",
+  "event": { ... }
+}
+```
+
+### Update Event
+**PUT** `/admin/events/:id`
+
+Update an existing event.
+
+**Headers:** Authorization required (Admin role)
+
+**Request Body:** (All fields optional)
+```json
+{
+  "name": "Updated Event Name",
+  "vendor_fee": 600.0
+}
+```
+
+**Response:** `200 OK`
+
+### Delete Event
+**DELETE** `/admin/events/:id`
+
+Delete an event (only if no applications exist).
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Event deleted successfully"
+}
+```
+
+### Get All Payments
+**GET** `/admin/payments`
+
+Get all payments across all vendors.
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "vendor_id": 1,
+    "vendor_name": "John Smith",
+    "amount": 500.0,
+    "status": "completed",
+    "payment_date": "2026-02-01T14:30:00"
+  }
+]
+```
+
+### Update Payment Status
+**PUT** `/admin/payments/:id/update-status`
+
+Update the status of a payment.
+
+**Headers:** Authorization required (Admin role)
+
+**Request Body:**
+```json
+{
+  "status": "completed",
+  "payment_method": "credit_card",
+  "transaction_id": "TXN123456",
+  "notes": "Payment received successfully"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Payment status updated successfully",
+  "payment": { ... }
+}
+```
+
+### Get Admin Dashboard Stats
+**GET** `/admin/dashboard/stats`
+
+Get comprehensive dashboard statistics.
+
+**Headers:** Authorization required (Admin role)
+
+**Response:** `200 OK`
+```json
+{
+  "vendors": {
+    "total": 50,
+    "active": 45,
+    "inactive": 5,
+    "new_this_week": 3
+  },
+  "applications": {
+    "total": 200,
+    "pending": 15,
+    "approved": 150,
+    "rejected": 35,
+    "new_this_week": 10
+  },
+  "events": {
+    "total": 20,
+    "upcoming": 8,
+    "ongoing": 2
+  },
+  "revenue": {
+    "total": 50000.0,
+    "pending": 5000.0
+  }
+}
+```
+
+### Analytics Endpoints
+
+**GET** `/admin/analytics/applications-by-status`
+
+Get application counts grouped by status.
+
+**GET** `/admin/analytics/applications-over-time`
+
+Get application trends over the last 6 months.
+
+**GET** `/admin/analytics/revenue-by-month`
+
+Get revenue breakdown by month.
+
+---
+
+## Error Responses
+
+All endpoints may return the following error responses:
+
+### 400 Bad Request
+```json
+{
+  "error": "Missing required field: email"
+}
+```
+
+### 401 Unauthorized
+```json
+{
+  "error": "Missing authorization token"
+}
+```
+
+### 403 Forbidden
+```json
+{
+  "error": "Access denied"
+}
+```
+
+### 404 Not Found
+```json
+{
+  "error": "Resource not found"
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+  "error": "Internal server error"
+}
+```
+
+---
+
+## Status Codes
+
+- `200 OK` - Successful GET/PUT/DELETE request
+- `201 Created` - Successful POST request
+- `400 Bad Request` - Invalid request data
+- `401 Unauthorized` - Missing or invalid authentication
+- `403 Forbidden` - Insufficient permissions
+- `404 Not Found` - Resource doesn't exist
+- `409 Conflict` - Resource conflict (e.g., duplicate email)
+- `500 Internal Server Error` - Server error
+
+---
+
+## Application Status Values
+
+- `pending` - Application awaiting review
+- `approved` - Application accepted by admin
+- `rejected` - Application declined by admin
+- `withdrawn` - Application withdrawn by vendor
+
+## Payment Status Values
+
+- `pending` - Payment not yet received
+- `completed` - Payment successfully processed
+- `failed` - Payment attempt failed
+- `refunded` - Payment refunded to vendor
+
+## Event Status Values
+
+- `upcoming` - Event scheduled for future
+- `ongoing` - Event currently happening
+- `completed` - Event finished
+- `cancelled` - Event cancelled

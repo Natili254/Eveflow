@@ -1,0 +1,1838 @@
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { 
+  BarChart3, Calendar, CheckCircle, XCircle, Clock, DollarSign,
+  Users, FileText, TrendingUp, LogOut, User as UserIcon, Building2,
+  Plus, Eye, Edit, Trash2, Search, Filter, Download, Upload, Mail, Phone, MapPin, ChevronDown, Menu, X
+} from 'lucide-react';
+import './App.css';
+
+// API Configuration
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Auth Context
+const AuthContext = createContext(null);
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await api.get('/auth/me');
+        setUser(response.data);
+      } catch (error) {
+        localStorage.removeItem('token');
+      }
+    }
+    setLoading(false);
+  };
+
+  const login = async (email, password, role) => {
+    const response = await api.post('/auth/login', { email, password, role });
+    localStorage.setItem('token', response.data.access_token);
+    setUser(response.data.user);
+    return response.data;
+  };
+
+  const register = async (userData) => {
+    const response = await api.post('/auth/register', userData);
+    localStorage.setItem('token', response.data.access_token);
+    setUser(response.data.user);
+    return response.data;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+const useAuth = () => useContext(AuthContext);
+
+const HomePage = () => {
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    const fetchTrendingEvents = async () => {
+      try {
+        const response = await api.get('/events');
+        setEvents((response.data || []).slice(0, 6));
+      } catch (error) {
+        setEvents([]);
+      }
+    };
+    fetchTrendingEvents();
+  }, []);
+
+  const eventImages = [
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=80'
+  ];
+
+  return (
+    <div className="landing-page">
+      <section className="landing-hero">
+        <div className="landing-hero-content">
+          <div className="landing-badge">Live Event Marketplace</div>
+          <h1>Where Organizers Post Events and Vendors Apply Fast</h1>
+          <p>
+            EventFlow connects event owners and vendors in one place.
+            Explore trending events, apply in minutes, and track review and payment status.
+          </p>
+          <div className="landing-actions">
+            <Link to="/events" className="btn btn-secondary btn-lg">Browse Events</Link>
+            <Link to="/register" className="btn btn-secondary btn-lg">Create Account</Link>
+            <Link to="/login" className="btn btn-primary btn-lg">Login</Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-section">
+        <div className="landing-section-header">
+          <h2>Trending Events</h2>
+          <p className="text-muted">Live banners from active events currently open for vendor applications.</p>
+        </div>
+        <div className="landing-events-grid">
+          {events.length === 0 && (
+            <div className="card">
+              <p className="text-muted">No trending events yet. Check again shortly.</p>
+            </div>
+          )}
+          {events.map((event, index) => (
+            <article className="event-banner-card" key={event.id}>
+              <img src={eventImages[index % eventImages.length]} alt={event.name} />
+              <div className="event-banner-overlay">
+                <h3>{event.name}</h3>
+                <p>{event.location || 'Location to be confirmed'}</p>
+                <div className="event-banner-meta">
+                  <span>{new Date(event.event_date).toLocaleDateString()}</span>
+                  <span>{event.default_currency || 'USD'} {Number(event.vendor_fee || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-section">
+        <div className="landing-section-header">
+          <h2>How It Works</h2>
+        </div>
+        <div className="grid grid-3 gap-4">
+          <div className="card">
+            <h3>For Admins</h3>
+            <p className="text-muted">Post events, set payment channels and currencies, and review vendor applications for your own events.</p>
+          </div>
+          <div className="card">
+            <h3>For Vendors</h3>
+            <p className="text-muted">Register, apply to events, and complete payments after approval using configured channels.</p>
+          </div>
+          <div className="card">
+            <h3>Transparent Workflow</h3>
+            <p className="text-muted">Applications, approvals, and payments are tracked in one dashboard for faster event operations.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const AppFooter = () => (
+  <footer className="landing-footer">
+    <div className="landing-footer-content">
+      <h3>Contact The Site Owner</h3>
+      <div className="landing-contact-grid">
+        <div><Mail size={16} /> natililevy65@gmail.com</div>
+        <div><Phone size={16} /> 0791604923</div>
+        <div><MapPin size={16} /> Nairobi, Kenya</div>
+      </div>
+      <p className="text-muted mt-3">� {new Date().getFullYear()} EventFlow. All rights reserved.</p>
+    </div>
+  </footer>
+);
+// Protected Route Component
+const ProtectedRoute = ({ children, role }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading"><div className="spinner"></div></div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (role && user.role !== role) {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
+// Navigation Component
+const Navbar = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  const handleLogout = () => {
+    setIsProfileOpen(false);
+    setIsMobileNavOpen(false);
+    logout();
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    setIsProfileOpen(false);
+    setIsMobileNavOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  if (!user || location.pathname === '/') return null;
+
+  const isVendor = user.role === 'vendor';
+  const isAdmin = user.role === 'admin';
+  const dashboardPath = isAdmin ? '/admin' : '/dashboard';
+  const closeMobileMenu = () => setIsMobileNavOpen(false);
+
+  return (
+    <nav className={`navbar ${isMobileNavOpen ? 'nav-open' : ''}`}>
+      <div className="navbar-brand">
+        <div className="navbar-brand-icon">
+          <Calendar size={20} />
+        </div>
+        <span>EventFlow</span>
+      </div>
+
+      <button
+        type="button"
+        className="navbar-toggle"
+        onClick={() => setIsMobileNavOpen((prev) => !prev)}
+        aria-expanded={isMobileNavOpen}
+        aria-label="Toggle navigation menu"
+      >
+        {isMobileNavOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      <ul className={`navbar-nav ${isMobileNavOpen ? 'open' : ''}`}>
+        <li><Link to={isAdmin ? "/admin" : "/dashboard"} className="nav-link" onClick={closeMobileMenu}>Dashboard</Link></li>
+        {isVendor && (
+          <>
+            <li><Link to="/events" className="nav-link" onClick={closeMobileMenu}>Events</Link></li>
+            <li><Link to="/my-applications" className="nav-link" onClick={closeMobileMenu}>My Applications</Link></li>
+            <li><Link to="/payments" className="nav-link" onClick={closeMobileMenu}>Payments</Link></li>
+          </>
+        )}
+        {isAdmin && (
+          <>
+            <li><Link to="/applications" className="nav-link" onClick={closeMobileMenu}>Applications</Link></li>
+            <li><Link to="/admin/events" className="nav-link" onClick={closeMobileMenu}>Events</Link></li>
+          </>
+        )}
+      </ul>
+
+      <div className={`user-menu ${isMobileNavOpen ? 'open' : ''}`} ref={profileMenuRef}>
+        <button
+          type="button"
+          className="profile-trigger"
+          onClick={() => setIsProfileOpen((prev) => !prev)}
+          aria-expanded={isProfileOpen}
+          aria-haspopup="menu"
+        >
+          <div className="user-avatar">
+            {user.full_name?.charAt(0) || 'U'}
+          </div>
+          <span className="profile-name">{user.full_name || 'User'}</span>
+          <ChevronDown size={16} className={`profile-caret ${isProfileOpen ? 'open' : ''}`} />
+        </button>
+
+        {isProfileOpen && (
+          <div className="profile-dropdown" role="menu">
+            <div className="profile-email">{user.email}</div>
+            <Link to={dashboardPath} className="profile-menu-item" role="menuitem">
+              Dashboard
+            </Link>
+            <button type="button" className="profile-menu-item" onClick={handleLogout} role="menuitem">
+              <LogOut size={15} />
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+};
+
+// Login Page
+const LoginPage = () => {
+  const [formData, setFormData] = useState({ email: '', password: '', role: 'vendor' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await login(formData.email, formData.password, formData.role);
+      navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
+    } catch (err) {
+      if (!err.response) {
+        setError(`Cannot reach backend at ${API_BASE_URL}. Make sure the API server is running.`);
+      } else {
+        setError(err.response?.data?.error || 'Login failed');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">
+            <Calendar size={32} />
+          </div>
+          <h1 className="auth-title">Welcome Back</h1>
+          <p className="auth-subtitle">Sign in to your account</p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="role-selector">
+            <div
+              className={`role-option ${formData.role === 'vendor' ? 'active' : ''}`}
+              onClick={() => setFormData({ ...formData, role: 'vendor' })}
+            >
+              <div className="role-icon"><Building2 size={32} /></div>
+              <div><strong>Vendor</strong></div>
+            </div>
+            <div
+              className={`role-option ${formData.role === 'admin' ? 'active' : ''}`}
+              onClick={() => setFormData({ ...formData, role: 'admin' })}
+            >
+              <div className="role-icon"><UserIcon size={32} /></div>
+              <div><strong>Admin</strong></div>
+            </div>
+          </div>
+
+          {error && <div className="form-error text-center mb-3">{error}</div>}
+
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input
+              type="email"
+              className="form-input"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+
+          <div className="text-center mt-4">
+            <p className="text-muted mt-3">
+              {formData.role === 'admin' ? 'New Admin? ' : 'New vendor? '}
+              <Link to="/register">Create new account</Link>
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const RegisterPage = () => {
+  const [formData, setFormData] = useState({
+    role: 'vendor',
+    full_name: '',
+    email: '',
+    password: '',
+    phone: '',
+    company_name: '',
+    business_type: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await register({
+        ...formData
+      });
+      navigate(formData.role === 'admin' ? '/admin' : '/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">
+            <Calendar size={32} />
+          </div>
+          <h1 className="auth-title">Create Vendor Account</h1>
+          <p className="auth-subtitle">Register to apply for events</p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          {error && <div className="form-error text-center mb-3">{error}</div>}
+
+          <div className="form-group">
+            <label className="form-label">Account Type</label>
+            <select
+              className="form-select"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            >
+              <option value="vendor">Vendor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Full Name</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input
+              type="email"
+              className="form-input"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-input"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Phone</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Company Name</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.company_name}
+              onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Business Type</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.business_type}
+              onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
+            {loading ? 'Creating account...' : 'Register'}
+          </button>
+
+          <div className="text-center mt-4">
+            <p className="text-muted">
+              Already have an account? <Link to="/login">Sign in</Link>
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Vendor Dashboard
+const VendorDashboard = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [appRes, payRes] = await Promise.allSettled([
+        api.get('/vendor/applications'),
+        api.get('/vendor/payments')
+      ]);
+
+      if (appRes.status !== 'fulfilled') {
+        throw appRes.reason || new Error('Failed to fetch applications');
+      }
+
+      const applications = appRes.value?.data || [];
+      const payments = payRes.status === 'fulfilled' ? (payRes.value?.data || []) : [];
+      const now = new Date();
+
+      const totalApplications = applications.length;
+      const pending = applications.filter((a) => a.status === 'pending').length;
+      const approved = applications.filter((a) => a.status === 'approved').length;
+      const rejected = applications.filter((a) => a.status === 'rejected').length;
+      const totalPaid = payments
+        .filter((p) => p.status === 'completed')
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const pendingPayments = payments
+        .filter((p) => p.status === 'pending')
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const upcomingEvents = applications.filter(
+        (a) => a.status === 'approved' && a.event_date && new Date(a.event_date) > now
+      ).length;
+
+      setStats({
+        total_applications: totalApplications,
+        pending,
+        approved,
+        rejected,
+        total_paid: totalPaid,
+        pending_payments: pendingPayments,
+        upcoming_events: upcomingEvents
+      });
+    } catch (error) {
+      console.error('Error calculating stats from live data, using fallback endpoint:', error);
+      try {
+        const response = await api.get('/vendor/dashboard/stats');
+        setStats(response.data);
+      } catch (fallbackError) {
+        console.error('Error fetching stats fallback:', fallbackError);
+        setStats({
+          total_applications: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          total_paid: 0,
+          pending_payments: 0,
+          upcoming_events: 0
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  if (loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <h1>Welcome back, {user.full_name}!</h1>
+      <p className="text-muted mb-4">{user.company_name || 'Vendor Dashboard'}</p>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Applications</div>
+          <div className="stat-value">{stats?.total_applications || 0}</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-label">Pending Review</div>
+          <div className="stat-value">{stats?.pending || 0}</div>
+          <div className="stat-change">
+            <Clock size={16} />
+            Awaiting response
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-label">Approved</div>
+          <div className="stat-value">{stats?.approved || 0}</div>
+          <div className="stat-change positive">
+            <CheckCircle size={16} />
+            Active events
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-label">Total Paid</div>
+          <div className="stat-value">${stats?.total_paid?.toFixed(2) || '0.00'}</div>
+          <div className="stat-change">
+            <DollarSign size={16} />
+            Completed
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-2 gap-4">
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Quick Actions</h3>
+          </div>
+          <div className="card-body">
+            <Link to="/events" className="btn btn-primary btn-lg" style={{ width: '100%', marginBottom: '1rem' }}>
+              <Plus size={20} />
+              Browse & Apply to Events
+            </Link>
+            <Link to="/my-applications" className="btn btn-secondary btn-lg" style={{ width: '100%' }}>
+              <FileText size={20} />
+              View My Applications
+            </Link>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Application Status</h3>
+          </div>
+          <div className="card-body">
+            <div style={{ marginBottom: '1rem' }}>
+              <div className="flex justify-between mb-2">
+                <span>Approved</span>
+                <strong className="text-success">{stats?.approved || 0}</strong>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span>Pending</span>
+                <strong className="text-accent">{stats?.pending || 0}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Rejected</span>
+                <strong className="text-danger">{stats?.rejected || 0}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Vendor Events List
+const VendorEventsList = () => {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [applicationData, setApplicationData] = useState({
+    product_service: '',
+    booth_requirements: '',
+    additional_notes: ''
+  });
+
+  const fetchEvents = useCallback(async () => {
+    try {
+      const isVendor = user?.role === 'vendor';
+      const response = await api.get(isVendor ? '/vendor/events' : '/events');
+      setEvents(response.data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.role]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      fetchEvents();
+    }
+  }, [authLoading, fetchEvents]);
+
+  const handleApply = (event) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (user.role !== 'vendor') {
+      alert('Only vendor accounts can apply to events.');
+      return;
+    }
+    setSelectedEvent(event);
+    setShowModal(true);
+  };
+
+  const inquiryEmailHref = (event) => {
+    const email = event?.admin_email;
+    if (!email) return '#';
+    const subject = encodeURIComponent(`Inquiry about ${event.name}`);
+    const body = encodeURIComponent(
+      `Hello,\n\nI have an inquiry about "${event.name}" scheduled on ${new Date(event.event_date).toLocaleDateString()}.\n\nRegards,`
+    );
+    return `mailto:${email}?subject=${subject}&body=${body}`;
+  };
+
+  const handleSubmitApplication = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/vendor/applications', {
+        event_id: selectedEvent.id,
+        ...applicationData
+      });
+      alert('Application submitted successfully!');
+      setShowModal(false);
+      setApplicationData({ product_service: '', booth_requirements: '', additional_notes: '' });
+      fetchEvents();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to submit application');
+    }
+  };
+
+  if (authLoading || loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <h1>Available Events</h1>
+      <p className="text-muted mb-4">Browse and apply to upcoming events</p>
+
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Event Name</th>
+              <th>Date</th>
+              <th>Location</th>
+              <th>Admin Email</th>
+              <th>Fee</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((event) => (
+              <tr key={event.id}>
+                <td><strong>{event.name}</strong></td>
+                <td>{new Date(event.event_date).toLocaleDateString()}</td>
+                <td>{event.location}</td>
+                <td>{event.admin_email || '-'}</td>
+                <td>${event.vendor_fee}</td>
+                <td>
+                  {event.has_applied ? (
+                    <span className="badge badge-info">Applied</span>
+                  ) : (
+                    <span className="badge badge-success">Open</span>
+                  )}
+                </td>
+                <td>
+                  {!user ? (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => navigate('/login')}>
+                        Sign in to Apply
+                      </button>
+                    </div>
+                  ) : user.role === 'vendor' ? (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {!event.has_applied && (
+                        <button className="btn btn-primary btn-sm" onClick={() => handleApply(event)}>
+                          Apply Now
+                        </button>
+                      )}
+                      {event.admin_email ? (
+                        <a
+                          className="btn btn-secondary btn-sm"
+                          href={inquiryEmailHref(event)}
+                          title={`Email ${event.admin_email}`}
+                        >
+                          <Mail size={14} />
+                          Send Inquiry
+                        </a>
+                      ) : (
+                        <button className="btn btn-ghost btn-sm" disabled>
+                          No Contact Email
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted">Admin cannot apply</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Apply to {selectedEvent?.name}</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleSubmitApplication}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Product/Service Offering</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., Gourmet burgers and beverages"
+                    value={applicationData.product_service}
+                    onChange={(e) => setApplicationData({ ...applicationData, product_service: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Booth Requirements</label>
+                  <textarea
+                    className="form-textarea"
+                    placeholder="Describe your booth requirements..."
+                    value={applicationData.booth_requirements}
+                    onChange={(e) => setApplicationData({ ...applicationData, booth_requirements: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Additional Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    placeholder="Any additional information..."
+                    value={applicationData.additional_notes}
+                    onChange={(e) => setApplicationData({ ...applicationData, additional_notes: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Submit Application
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Vendor Applications List
+const VendorApplicationsList = () => {
+  const [applications, setApplications] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    payment_method: 'card',
+    currency: 'USD',
+    transaction_id: '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  const fetchApplications = async () => {
+    setError('');
+    try {
+      const appRes = await api.get('/vendor/applications');
+      setApplications(appRes.data || []);
+    } catch (error) {
+      console.error('Error fetching applications list:', error);
+      setError(error.response?.data?.error || 'Failed to load applications');
+      setApplications([]);
+    }
+
+    try {
+      const payRes = await api.get('/vendor/payments');
+      setPayments(payRes.data || []);
+    } catch (error) {
+      // Do not block applications page if payment endpoint fails.
+      console.error('Error fetching payments:', error);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const paymentForApplication = (applicationId) =>
+    payments.find((p) => p.application_id === applicationId);
+
+  const formatDateTime = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString();
+  };
+
+  const openPayModal = (application) => {
+    const payment = paymentForApplication(application.id);
+    if (!payment) {
+      alert('Payment record not found yet. Contact admin.');
+      return;
+    }
+    if (payment.status === 'completed') {
+      alert('This event is already paid.');
+      return;
+    }
+    setSelectedPayment(payment);
+    setSelectedApplication(application);
+    setShowPayModal(true);
+    setPaymentData({
+      payment_method: 'card',
+      currency: application.default_currency || 'USD',
+      transaction_id: '',
+      notes: ''
+    });
+  };
+
+  const submitPayment = async (e) => {
+    e.preventDefault();
+    if (!selectedPayment) return;
+    try {
+      await api.put(`/vendor/payments/${selectedPayment.id}/pay`, paymentData);
+      alert('Payment completed successfully');
+      setShowPayModal(false);
+      setSelectedPayment(null);
+      setSelectedApplication(null);
+      setPaymentData({ payment_method: 'card', currency: 'USD', transaction_id: '', notes: '' });
+      fetchApplications();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Payment failed');
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: <span className="badge badge-warning"><Clock size={12} /> Pending</span>,
+      approved: <span className="badge badge-success"><CheckCircle size={12} /> Approved</span>,
+      rejected: <span className="badge badge-danger"><XCircle size={12} /> Rejected</span>,
+      withdrawn: <span className="badge badge-gray">Withdrawn</span>
+    };
+    return badges[status] || <span className="badge badge-gray">{status}</span>;
+  };
+
+  const getPaymentBadge = (payment) => {
+    if (!payment) return <span className="badge badge-gray">Not Generated</span>;
+    if (payment.status === 'completed') return <span className="badge badge-success">Paid</span>;
+    if (payment.status === 'pending') return <span className="badge badge-warning">Pending Payment</span>;
+    if (payment.status === 'failed') return <span className="badge badge-danger">Failed</span>;
+    return <span className="badge badge-gray">{payment.status}</span>;
+  };
+
+  const currencyOptionsForApplication = (application) => {
+    if (!application?.currency_options) return ['USD'];
+    return application.currency_options
+      .split(',')
+      .map((v) => v.trim().toUpperCase())
+      .filter(Boolean);
+  };
+
+  const paymentDestinationText = () => {
+    if (!selectedApplication) return '';
+    if (paymentData.payment_method === 'mpesa') return selectedApplication.mpesa_number || 'Not configured by admin';
+    if (paymentData.payment_method === 'paypal') return selectedApplication.paypal_account || 'Not configured by admin';
+    if (paymentData.payment_method === 'zelle') return selectedApplication.zelle_account || 'Not configured by admin';
+    if (paymentData.payment_method === 'card') return selectedApplication.card_instructions || 'Use card checkout instructions from admin';
+    return '';
+  };
+
+  if (loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <h1>My Applications</h1>
+      <p className="text-muted mb-4">Track the status of your event applications</p>
+      {error && <div className="form-error mb-3">{error}</div>}
+
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Event Date</th>
+              <th>Product/Service</th>
+              <th>Applied On</th>
+              <th>Status</th>
+              <th>Fee</th>
+              <th>Payment</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {applications.length === 0 && (
+              <tr>
+                <td colSpan="8" className="text-center text-muted">No applications yet.</td>
+              </tr>
+            )}
+            {applications.map((app) => {
+              const payment = paymentForApplication(app.id);
+              return (
+              <tr key={app.id}>
+                <td><strong>{app.event_name}</strong></td>
+                <td>{new Date(app.event_date).toLocaleDateString()}</td>
+                <td>{app.product_service}</td>
+                <td>{new Date(app.applied_at).toLocaleDateString()}</td>
+                <td>{getStatusBadge(app.status)}</td>
+                <td>${app.vendor_fee}</td>
+                <td>{getPaymentBadge(payment)}</td>
+                <td>
+                  {app.status === 'approved' && payment?.status !== 'completed' ? (
+                    <button className="btn btn-primary btn-sm" onClick={() => openPayModal(app)}>
+                      Pay Now
+                    </button>
+                  ) : (
+                    <span className="text-muted">-</span>
+                  )}
+                </td>
+              </tr>
+            )})}
+          </tbody>
+        </table>
+      </div>
+
+      {showPayModal && selectedPayment && (
+        <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Pay Vendor Fee</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowPayModal(false)}>×</button>
+            </div>
+            <form onSubmit={submitPayment}>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <strong>Amount:</strong> ${Number(selectedPayment.amount || 0).toFixed(2)}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Method</label>
+                  <select
+                    className="form-select"
+                    value={paymentData.payment_method}
+                    onChange={(e) => setPaymentData({ ...paymentData, payment_method: e.target.value })}
+                  >
+                    <option value="card">Card</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="mpesa">Mpesa</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Currency</label>
+                  <select
+                    className="form-select"
+                    value={paymentData.currency}
+                    onChange={(e) => setPaymentData({ ...paymentData, currency: e.target.value })}
+                  >
+                    {currencyOptionsForApplication(selectedApplication).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Pay To</label>
+                  <input className="form-input" value={paymentDestinationText()} readOnly />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transaction Reference (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={paymentData.transaction_id}
+                    onChange={(e) => setPaymentData({ ...paymentData, transaction_id: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Notes (Optional)</label>
+                  <textarea
+                    className="form-textarea"
+                    value={paymentData.notes}
+                    onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowPayModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Confirm Payment</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Vendor Payments Overview
+const VendorPaymentsPage = () => {
+  const [applications, setApplications] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchPaymentOverview = useCallback(async () => {
+    setError('');
+    try {
+      const [appRes, payRes] = await Promise.all([
+        api.get('/vendor/applications'),
+        api.get('/vendor/payments')
+      ]);
+      setApplications(appRes.data || []);
+      setPayments(payRes.data || []);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to load payments overview');
+      setApplications([]);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPaymentOverview();
+  }, [fetchPaymentOverview]);
+
+  const paymentForApplication = (applicationId) =>
+    payments.find((p) => p.application_id === applicationId);
+
+  const formatDateTime = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString();
+  };
+
+  const paymentLabelForApp = (app) => {
+    const payment = paymentForApplication(app.id);
+    if (payment?.status === 'completed') return 'Paid';
+    if (payment?.status === 'pending') return 'Pending Payment';
+    if (payment?.status === 'failed') return 'Payment Failed';
+    if (app.status === 'pending') return 'Awaiting Approval';
+    return 'Not Generated';
+  };
+
+  const paidApplications = applications.filter((app) => {
+    const payment = paymentForApplication(app.id);
+    return payment?.status === 'completed';
+  });
+
+  const pendingPaymentApplications = applications.filter((app) => {
+    const payment = paymentForApplication(app.id);
+    if (payment?.status === 'completed') return false;
+    return app.status === 'approved' || app.status === 'pending';
+  });
+
+  if (loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <h1>Payments</h1>
+      <p className="text-muted mb-4">Events you applied to: paid and pending payments</p>
+      {error && <div className="form-error mb-3">{error}</div>}
+
+      <div className="card mb-4">
+        <div className="card-header">
+          <h3 className="card-title">Paid Events ({paidApplications.length})</h3>
+        </div>
+        <div className="card-body">
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Event Date</th>
+                  <th>Application Status</th>
+                  <th>Payment Status</th>
+                  <th>Date of Payment</th>
+                  <th>Fee</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paidApplications.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="text-center text-muted">No paid events yet.</td>
+                  </tr>
+                )}
+                {paidApplications.map((app) => {
+                  const payment = paymentForApplication(app.id);
+                  return (
+                    <tr key={app.id}>
+                      <td><strong>{app.event_name}</strong></td>
+                      <td>{new Date(app.event_date).toLocaleDateString()}</td>
+                      <td>{app.status}</td>
+                      <td>Paid</td>
+                      <td>{formatDateTime(payment?.payment_date || payment?.created_at)}</td>
+                      <td>${Number(app.vendor_fee || 0).toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Applied But Payment Pending ({pendingPaymentApplications.length})</h3>
+        </div>
+        <div className="card-body">
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Event Date</th>
+                  <th>Application Status</th>
+                  <th>Payment Status</th>
+                  <th>Pending Since</th>
+                  <th>Fee</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingPaymentApplications.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="text-center text-muted">No pending payments right now.</td>
+                  </tr>
+                )}
+                {pendingPaymentApplications.map((app) => {
+                  const payment = paymentForApplication(app.id);
+                  return (
+                    <tr key={app.id}>
+                      <td><strong>{app.event_name}</strong></td>
+                      <td>{new Date(app.event_date).toLocaleDateString()}</td>
+                      <td>{app.status}</td>
+                      <td>{paymentLabelForApp(app)}</td>
+                      <td>{formatDateTime(payment?.created_at || app.applied_at)}</td>
+                      <td>${Number(app.vendor_fee || 0).toFixed(2)}</td>
+                      <td>
+                        {app.status === 'approved' ? (
+                          <Link to="/my-applications" className="btn btn-primary btn-sm">Open Payment</Link>
+                        ) : (
+                          <span className="text-muted">Wait for approval</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Admin Dashboard Component with Charts
+const AdminDashboard = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await api.get('/admin/dashboard/stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p className="text-muted mb-4">Overview of platform statistics</p>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Vendors</div>
+          <div className="stat-value">{stats?.vendors?.total || 0}</div>
+          <div className="stat-change positive">
+            <TrendingUp size={16} />
+            {stats?.vendors?.new_this_week || 0} new this week
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-label">Total Applications</div>
+          <div className="stat-value">{stats?.applications?.total || 0}</div>
+          <div className="stat-change">
+            <FileText size={16} />
+            {stats?.applications?.pending || 0} pending
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-label">Total Events</div>
+          <div className="stat-value">{stats?.events?.total || 0}</div>
+          <div className="stat-change">
+            <Calendar size={16} />
+            {stats?.events?.upcoming || 0} upcoming
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-label">Total Revenue</div>
+          <div className="stat-value">${stats?.revenue?.total?.toFixed(2) || '0.00'}</div>
+          <div className="stat-change">
+            <DollarSign size={16} />
+            ${stats?.revenue?.pending?.toFixed(2) || '0.00'} pending
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-2 gap-4">
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Application Status Breakdown</h3>
+          </div>
+          <div className="card-body">
+            <div style={{ marginBottom: '1rem' }}>
+              <div className="flex justify-between mb-3">
+                <span className="text-muted">Approved</span>
+                <strong className="text-success">{stats?.applications?.approved || 0}</strong>
+              </div>
+              <div className="flex justify-between mb-3">
+                <span className="text-muted">Pending</span>
+                <strong className="text-accent">{stats?.applications?.pending || 0}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Rejected</span>
+                <strong className="text-danger">{stats?.applications?.rejected || 0}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Quick Actions</h3>
+          </div>
+          <div className="card-body">
+            <Link to="/applications" className="btn btn-primary btn-lg" style={{ width: '100%', marginBottom: '1rem' }}>
+              <FileText size={20} />
+              Review Applications ({stats?.applications?.pending || 0})
+            </Link>
+            <Link to="/admin/events" className="btn btn-secondary btn-lg" style={{ width: '100%' }}>
+              <Calendar size={20} />
+              Manage My Events
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Admin Applications Management
+const AdminApplications = () => {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [reviewData, setReviewData] = useState({ status: 'approved', admin_notes: '' });
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  const fetchApplications = async () => {
+    try {
+      const response = await api.get('/admin/applications');
+      setApplications(response.data);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReview = (app) => {
+    setSelectedApp(app);
+    setShowModal(true);
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/admin/applications/${selectedApp.id}/review`, reviewData);
+      alert('Application reviewed successfully!');
+      setShowModal(false);
+      setReviewData({ status: 'approved', admin_notes: '' });
+      fetchApplications();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to review application');
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: <span className="badge badge-warning"><Clock size={12} /> Pending</span>,
+      approved: <span className="badge badge-success"><CheckCircle size={12} /> Approved</span>,
+      rejected: <span className="badge badge-danger"><XCircle size={12} /> Rejected</span>
+    };
+    return badges[status] || <span className="badge badge-gray">{status}</span>;
+  };
+
+  if (loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <h1>All Applications</h1>
+      <p className="text-muted mb-4">Review and manage vendor applications</p>
+
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th>Event</th>
+              <th>Product/Service</th>
+              <th>Applied On</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {applications.map((app) => (
+              <tr key={app.id}>
+                <td>
+                  <strong>{app.vendor_name}</strong><br />
+                  <small className="text-muted">{app.vendor_company}</small>
+                </td>
+                <td><strong>{app.event_name}</strong></td>
+                <td>{app.product_service}</td>
+                <td>{new Date(app.applied_at).toLocaleDateString()}</td>
+                <td>{getStatusBadge(app.status)}</td>
+                <td>
+                  {app.status === 'pending' && (
+                    <button className="btn btn-primary btn-sm" onClick={() => handleReview(app)}>
+                      <Eye size={16} />
+                      Review
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Review Application</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleSubmitReview}>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <strong>Vendor:</strong> {selectedApp?.vendor_name}<br />
+                  <strong>Event:</strong> {selectedApp?.event_name}<br />
+                  <strong>Product/Service:</strong> {selectedApp?.product_service}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Decision</label>
+                  <select
+                    className="form-select"
+                    value={reviewData.status}
+                    onChange={(e) => setReviewData({ ...reviewData, status: e.target.value })}
+                  >
+                    <option value="approved">Approve</option>
+                    <option value="rejected">Reject</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Admin Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    placeholder="Add notes about your decision..."
+                    value={reviewData.admin_notes}
+                    onChange={(e) => setReviewData({ ...reviewData, admin_notes: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className={`btn ${reviewData.status === 'approved' ? 'btn-success' : 'btn-danger'}`}>
+                  {reviewData.status === 'approved' ? 'Approve' : 'Reject'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AdminEvents = () => {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [eventData, setEventData] = useState({
+    name: '',
+    description: '',
+    event_date: '',
+    location: '',
+    venue: '',
+    expected_attendees: '',
+    vendor_fee: '',
+    status: 'upcoming',
+    default_currency: 'USD',
+    currency_options: 'USD,EUR,KES',
+    mpesa_number: '',
+    paypal_account: '',
+    zelle_account: '',
+    card_instructions: ''
+  });
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await api.get('/admin/events');
+      setEvents(response.data || []);
+    } catch (error) {
+      console.error('Error fetching admin events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateEvent = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/admin/events', {
+        ...eventData,
+        event_date: new Date(eventData.event_date).toISOString(),
+        expected_attendees: eventData.expected_attendees ? Number(eventData.expected_attendees) : null,
+        vendor_fee: eventData.vendor_fee ? Number(eventData.vendor_fee) : 0
+      });
+      alert('Event posted successfully');
+      setShowModal(false);
+      setEventData({
+        name: '',
+        description: '',
+        event_date: '',
+        location: '',
+        venue: '',
+        expected_attendees: '',
+        vendor_fee: '',
+        status: 'upcoming',
+        default_currency: 'USD',
+        currency_options: 'USD,EUR,KES',
+        mpesa_number: '',
+        paypal_account: '',
+        zelle_account: '',
+        card_instructions: ''
+      });
+      fetchEvents();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to create event');
+    }
+  };
+
+  if (loading) return <div className="loading"><div className="spinner"></div></div>;
+
+  return (
+    <div>
+      <div className="flex justify-between mb-4">
+        <div>
+          <h1>Event Management</h1>
+          <p className="text-muted">Post and manage events vendors apply to</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <Plus size={16} />
+          Post Event
+        </button>
+      </div>
+
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Event Name</th>
+              <th>Date</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Vendor Fee</th>
+              <th>Applications</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((event) => (
+              <tr key={event.id}>
+                <td><strong>{event.name}</strong></td>
+                <td>{new Date(event.event_date).toLocaleString()}</td>
+                <td>{event.location || '-'}</td>
+                <td><span className="badge badge-info">{event.status}</span></td>
+                <td>${Number(event.vendor_fee || 0).toFixed(2)}</td>
+                <td>{event.application_count || 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Post New Event</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleCreateEvent}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Event Name</label>
+                  <input className="form-input" value={eventData.name} onChange={(e) => setEventData({ ...eventData, name: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Event Date</label>
+                  <input type="datetime-local" className="form-input" value={eventData.event_date} onChange={(e) => setEventData({ ...eventData, event_date: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Location</label>
+                  <input className="form-input" value={eventData.location} onChange={(e) => setEventData({ ...eventData, location: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Venue</label>
+                  <input className="form-input" value={eventData.venue} onChange={(e) => setEventData({ ...eventData, venue: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Expected Attendees</label>
+                  <input type="number" className="form-input" value={eventData.expected_attendees} onChange={(e) => setEventData({ ...eventData, expected_attendees: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Vendor Fee</label>
+                  <input type="number" step="0.01" className="form-input" value={eventData.vendor_fee} onChange={(e) => setEventData({ ...eventData, vendor_fee: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select className="form-select" value={eventData.status} onChange={(e) => setEventData({ ...eventData, status: e.target.value })}>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Default Currency</label>
+                  <select className="form-select" value={eventData.default_currency} onChange={(e) => setEventData({ ...eventData, default_currency: e.target.value })}>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EURO</option>
+                    <option value="KES">KES</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Allowed Currencies (comma separated)</label>
+                  <input className="form-input" value={eventData.currency_options} onChange={(e) => setEventData({ ...eventData, currency_options: e.target.value })} placeholder="USD,EUR,KES" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Mpesa Number</label>
+                  <input className="form-input" value={eventData.mpesa_number} onChange={(e) => setEventData({ ...eventData, mpesa_number: e.target.value })} placeholder="e.g. 2547XXXXXXXX" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">PayPal Account</label>
+                  <input className="form-input" value={eventData.paypal_account} onChange={(e) => setEventData({ ...eventData, paypal_account: e.target.value })} placeholder="paypal@email.com" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Zelle Account</label>
+                  <input className="form-input" value={eventData.zelle_account} onChange={(e) => setEventData({ ...eventData, zelle_account: e.target.value })} placeholder="phone or email" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Card Payment Instructions</label>
+                  <input className="form-input" value={eventData.card_instructions} onChange={(e) => setEventData({ ...eventData, card_instructions: e.target.value })} placeholder="e.g. Stripe checkout link or POS desk details" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea className="form-textarea" value={eventData.description} onChange={(e) => setEventData({ ...eventData, description: e.target.value })} />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Post Event</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Main App Component
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="app-container">
+          <Navbar />
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              
+              {/* Vendor Routes */}
+              <Route path="/events" element={<VendorEventsList />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute role="vendor">
+                  <VendorDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-applications" element={
+                <ProtectedRoute role="vendor">
+                  <VendorApplicationsList />
+                </ProtectedRoute>
+              } />
+              <Route path="/payments" element={
+                <ProtectedRoute role="vendor">
+                  <VendorPaymentsPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute role="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/applications" element={
+                <ProtectedRoute role="admin">
+                  <AdminApplications />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/events" element={
+                <ProtectedRoute role="admin">
+                  <AdminEvents />
+                </ProtectedRoute>
+              } />
+              
+              {/* Redirect based on role */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </main>
+          <AppFooter />
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
+
+export default App;
+
+
