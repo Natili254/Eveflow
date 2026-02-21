@@ -8,9 +8,9 @@ def _normalize_database_url(url: str) -> str:
     if not url:
         return url
     if url.startswith('postgres://'):
-        return url.replace('postgres://', 'postgresql+psycopg2://', 1)
+        return url.replace('postgres://', 'postgresql+psycopg://', 1)
     if url.startswith('postgresql://'):
-        return url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+        return url.replace('postgresql://', 'postgresql+psycopg://', 1)
     return url
 
 class Config:
@@ -25,7 +25,7 @@ class Config:
     DB_USER = os.environ.get('DB_USER') or 'postgres'
     DB_PASSWORD = os.environ.get('DB_PASSWORD') or 'password'
     DB_NAME = os.environ.get('DB_NAME') or 'eventflow_db'
-    DB_DRIVER = os.environ.get('DB_DRIVER') or 'postgresql+psycopg2'
+    DB_DRIVER = os.environ.get('DB_DRIVER') or 'postgresql+psycopg'
 
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(DATABASE_URL) or (
         f"{DB_DRIVER}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
